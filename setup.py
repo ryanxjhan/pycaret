@@ -1,8 +1,10 @@
 # Copyright (C) 2019-2020 Moez Ali <moez.ali@queensu.ca>
 # License: MIT, moez.ali@queensu.ca
 
+import time
 from setuptools import setup, find_packages
 
+nightly_version = "3.0.0"
 
 def readme():
     with open("README.md") as f:
@@ -13,15 +15,15 @@ def readme():
 with open("requirements.txt") as f:
     required = f.read().splitlines()
 
+with open("requirements-ts.txt") as f:
+    required += f.read().splitlines()
+
 with open("requirements-optional.txt") as f:
     optional_required = f.read().splitlines()
 
-with open("requirements-test.txt") as f:
-    test_required = f.read().splitlines()
-
 setup(
-    name="pycaret",
-    version="3.0.0",
+    name="pycaret-ts-alpha",
+    version=str(nightly_version) + ".dev" + str(int(time.time())),
     description="PyCaret - An open source, low-code machine learning library in Python.",
     long_description=readme(),
     long_description_content_type="text/markdown",
@@ -38,6 +40,5 @@ setup(
     packages=find_packages(include=["pycaret*"]),
     include_package_data=True,
     install_requires=required,
-    extras_require={"full": optional_required,
-                    "test": test_required + optional_required},
+    extras_require={"full": optional_required,},
 )
