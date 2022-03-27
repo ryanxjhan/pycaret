@@ -80,6 +80,7 @@ def setup(
     profile: bool = False,
     profile_kwargs: Dict[str, Any] = None,
     fig_kwargs: Dict[str, Any] = None,
+    alpha: float = 0.05,
 ):
     """
     This function initializes the training environment and creates the transformation
@@ -298,6 +299,8 @@ def setup(
             certain plots can be disabled and/or renderer switched to a static
             renderer. This is useful when the time series being modeled has a lot
             of data which can make notebooks slow to render.
+        
+        alpha: The alpha parameter used in multiple methods, defaults to 0.05.
 
     Returns:
         Global variables that can be changed using the ``set_config`` function.
@@ -334,6 +337,7 @@ def setup(
         profile=profile,
         profile_kwargs=profile_kwargs,
         fig_kwargs=fig_kwargs,
+        alpha=alpha,
     )
 
 
@@ -919,7 +923,6 @@ def predict_model(
     fh=None,
     X=None,
     return_pred_int=False,
-    alpha=0.05,
     round: int = 4,
     verbose: bool = True,
 ) -> pd.DataFrame:
@@ -965,10 +968,6 @@ def predict_model(
         prediction interval, in addition to the point prediction.
 
 
-    alpha: float, default = 0.05
-        alpha for prediction interval. CI = 1 - alpha.
-
-
     round: int, default = 4
         Number of decimal places to round predictions to.
 
@@ -992,7 +991,7 @@ def predict_model(
         fh=fh,
         X=X,
         return_pred_int=return_pred_int,
-        alpha=alpha,
+        alpha=self.alpha,
         round=round,
         verbose=verbose,
     )
@@ -1612,7 +1611,6 @@ def set_current_experiment(experiment: TSForecastingExperiment):
 def check_stats(
     estimator: Optional[Any] = None,
     test: str = "all",
-    alpha: float = 0.05,
     split: str = "all",
 ) -> pd.DataFrame:
     """This function is used to get summary statistics and run statistical
@@ -1650,10 +1648,6 @@ def check_stats(
         * 'all' - All of the above tests
 
 
-    alpha : float, optional
-        Significance Level, by default 0.05
-
-
     split : str, optional
         The split of the original data to run the test on. Only applicable
         when test is run on the original data (not residuals), by default "all"
@@ -1679,5 +1673,5 @@ def check_stats(
         Dataframe with the test results
     """
     return _CURRENT_EXPERIMENT.check_stats(
-        estimator=estimator, test=test, alpha=alpha, split=split
+        estimator=estimator, test=test, alpha=self.alpha, split=split
     )

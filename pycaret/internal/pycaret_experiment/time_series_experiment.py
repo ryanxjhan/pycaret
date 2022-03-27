@@ -649,6 +649,7 @@ class TSForecastingExperiment(_SupervisedExperiment):
         profile: bool = False,
         profile_kwargs: Optional[Dict[str, Any]] = None,
         fig_kwargs: Optional[Dict[str, Any]] = None,
+        alpha: float = 0.05,
     ):
         """
         This function initializes the training environment and creates the transformation
@@ -867,6 +868,8 @@ class TSForecastingExperiment(_SupervisedExperiment):
                 certain plots can be disabled and/or renderer switched to a static
                 renderer. This is useful when the time series being modeled has a lot
                 of data which can make notebooks slow to render.
+            
+            alpha: The alpha parameter used in multiple methods, defaults to 0.05.
 
         Returns:
             Global variables that can be changed using the ``set_config`` function.
@@ -916,6 +919,11 @@ class TSForecastingExperiment(_SupervisedExperiment):
         # Should multiplicative components be allowed in models that support it
         self.strictly_positive = np.all(data_[self.target_param] > 0)
 
+        # Set up alpha value
+        if alpha < 0 or alpha > 1:
+            raise ValueError(f"alpha value can only range from 0 to 1.")
+        self.alpha = alpha
+        
         return super().setup(
             data=data_,
             target=self.target_param,
@@ -966,6 +974,7 @@ class TSForecastingExperiment(_SupervisedExperiment):
             verbose=verbose,
             profile=profile,
             profile_kwargs=profile_kwargs,
+            alpha=alpha,
         )
 
     def _set_default_fig_kwargs(self):
@@ -2296,7 +2305,7 @@ class TSForecastingExperiment(_SupervisedExperiment):
                 data = self._get_y_data(split="all")
 
                 fh = data_kwargs.get("fh", None)
-                alpha = data_kwargs.get("alpha", 0.05)
+                alpha = data_kwargs.get("alpha", self.alpha)
                 X = data_kwargs.get("X", None)
                 return_pred_int = estimator.get_tag("capability:pred_int")
 
@@ -2409,7 +2418,6 @@ class TSForecastingExperiment(_SupervisedExperiment):
         fh=None,
         X=None,
         return_pred_int=False,
-        alpha=0.05,
         round: int = 4,
         verbose: bool = True,
     ) -> pd.DataFrame:
@@ -2453,10 +2461,6 @@ class TSForecastingExperiment(_SupervisedExperiment):
         return_pred_int: bool, default = False
             When set to True, it returns lower bound and upper bound
             prediction interval, in addition to the point prediction.
-
-
-        alpha: float, default = 0.05
-            alpha for prediction interval. CI = 1 - alpha.
 
 
         round: int, default = 4
@@ -2537,7 +2541,7 @@ class TSForecastingExperiment(_SupervisedExperiment):
             #     forecaster=estimator_, X=X, fh=fh, alpha=alpha
             # )
             return_vals = estimator_.predict(
-                fh=fh, X=X, return_pred_int=return_pred_int, alpha=alpha
+                fh=fh, X=X, return_pred_int=return_pred_int, alpha=self.alpha
             )
         except NotImplementedError as error:
             self.logger.warning(error)
@@ -2547,7 +2551,7 @@ class TSForecastingExperiment(_SupervisedExperiment):
                 "NaN values will be returned for the prediction intervals instead."
             )
             return_vals = estimator_.predict(
-                fh=fh, X=X, return_pred_int=False, alpha=alpha
+                fh=fh, X=X, return_pred_int=False, alpha=self.alpha
             )
         if isinstance(return_vals, tuple):
             # Prediction Interval is returned
@@ -2597,7 +2601,7 @@ class TSForecastingExperiment(_SupervisedExperiment):
             # Hence, better to get this from the estimator directly.
             y_train = estimator_._y
             y_test_pred, lower, upper = get_predictions_with_intervals(
-                forecaster=estimator_, X=X, fh=fh, alpha=alpha
+                forecaster=estimator_, X=X, fh=fh, alpha=self.alpha
             )
 
             if len(y_test_pred) != len(y_test):
@@ -3206,7 +3210,6 @@ class TSForecastingExperiment(_SupervisedExperiment):
         self,
         estimator: Optional[Any] = None,
         test: str = "all",
-        alpha: float = 0.05,
         split: str = "all",
         data_kwargs: Optional[Dict] = None,
     ) -> pd.DataFrame:
@@ -3243,10 +3246,6 @@ class TSForecastingExperiment(_SupervisedExperiment):
             * 'stationarity' - ADF and KPSS test
             * 'normality' - Shapiro Test for Normality
             * 'all' - All of the above tests
-
-
-        alpha : float, optional
-            Significance Level, by default 0.05
 
 
         split : str, optional
@@ -3290,7 +3289,7 @@ class TSForecastingExperiment(_SupervisedExperiment):
             data=data,
             test=test,
             data_name=data_name,
-            alpha=alpha,
+            alpha=self.alpha,
             data_kwargs=data_kwargs,
         )
         results.reset_index(inplace=True, drop=True)
